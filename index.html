@@ -18,28 +18,18 @@
     padding:12px 16px; background:rgba(0,0,0,.4);
   }
   .scanner-title { font-weight:600; font-size:16px; }
-  .menu-btn {
+  .action-buttons {
+    display:flex; gap:8px;
+  }
+  .btn-icon {
     background:#222; border:0; color:#fff;
     width:40px; height:40px; border-radius:12px;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer;
-  }
-  .menu-btn svg { width:20px; height:20px; fill:#fff; }
-  .menu-overlay {
-    position:absolute; top:52px; right:16px; background:#111;
-    border-radius:14px; padding:8px; display:none; flex-direction:column;
-    gap:4px; box-shadow:0 6px 24px rgba(0,0,0,.7);
-    min-width:160px; animation:fadeIn .2s ease;
-  }
-  @keyframes fadeIn { from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:translateY(0);} }
-  .menu-item {
-    display:flex; align-items:center; gap:8px;
-    background:#1e1e1e; border-radius:10px;
-    padding:10px 12px; color:#fff; cursor:pointer; font-size:14px;
     transition:background .2s;
   }
-  .menu-item:hover { background:#2a2a2a; }
-  .menu-item svg { width:18px; height:18px; fill:#38bdf8; }
+  .btn-icon:hover { background:#333; }
+  .btn-icon svg { width:20px; height:20px; fill:#38bdf8; }
   .preview {
     flex:1; position:relative; display:grid; place-items:center; overflow:hidden;
   }
@@ -74,23 +64,19 @@
   <div class="scanner">
     <div class="scanner-bar">
       <div class="scanner-title">QRIS Scanner</div>
-      <button id="menuBtn" class="menu-btn">
-        <!-- Icon titik tiga -->
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
-      </button>
-      <div id="menuOverlay" class="menu-overlay">
-        <div id="switchCam" class="menu-item">
-          <svg viewBox="0 0 24 24"><path d="M20 5h-3.17l-1.41-1.41A2 2 0 0 0 14 3h-4a2 2 0 0 0-1.41.59L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM12 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>
-          Ganti Kamera
-        </div>
-        <div id="uploadBtn" class="menu-item">
+      <div class="action-buttons">
+        <!-- Upload file -->
+        <button id="uploadBtn" class="btn-icon" title="Upload Gambar">
           <svg viewBox="0 0 24 24"><path d="M5 20h14a1 1 0 0 0 1-1v-9h-4l-3-4H9L6 10H2v9a1 1 0 0 0 1 1z"/></svg>
-          Upload Gambar
-        </div>
-        <div id="closeBtn" class="menu-item">
-          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          Tutup Scanner
-        </div>
+        </button>
+        <!-- Ganti kamera -->
+        <button id="switchCam" class="btn-icon" title="Ganti Kamera">
+          <svg viewBox="0 0 24 24"><path d="M20 5h-3.17l-1.41-1.41A2 2 0 0 0 14 3h-4a2 2 0 0 0-1.41.59L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM12 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>
+        </button>
+        <!-- Flash -->
+        <button id="flashBtn" class="btn-icon" title="Nyalakan Flash">
+          <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+        </button>
       </div>
     </div>
     <div class="preview">
@@ -112,9 +98,7 @@
   const resultBox = document.getElementById('result');
   const switchCamBtn = document.getElementById('switchCam');
   const uploadBtn = document.getElementById('uploadBtn');
-  const closeBtn = document.getElementById('closeBtn');
-  const menuBtn = document.getElementById('menuBtn');
-  const menuOverlay = document.getElementById('menuOverlay');
+  const flashBtn = document.getElementById('flashBtn');
 
   // hidden input untuk upload
   const fileInput = document.createElement("input");
@@ -126,11 +110,7 @@
   let currentStream = null;
   let useBackCamera = true;
   let scanInterval;
-
-  // toggle menu
-  menuBtn.addEventListener('click', ()=>{
-    menuOverlay.style.display = menuOverlay.style.display === "flex" ? "none" : "flex";
-  });
+  let track; // untuk flash
 
   async function startCamera(){
     try{
@@ -140,6 +120,7 @@
       };
       currentStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = currentStream;
+      track = currentStream.getVideoTracks()[0];
       await video.play();
       msg.textContent = "Kamera aktif, arahkan ke QRIS";
       startScan();
@@ -177,15 +158,15 @@
     },500);
   }
 
+  // Ganti kamera
   switchCamBtn.addEventListener('click', async ()=>{
     useBackCamera = !useBackCamera;
     await startCamera();
-    menuOverlay.style.display = "none";
   });
 
+  // Upload
   uploadBtn.addEventListener('click', ()=>{
     fileInput.click();
-    menuOverlay.style.display = "none";
   });
 
   fileInput.addEventListener('change', ()=>{
@@ -212,10 +193,19 @@
     reader.readAsDataURL(file);
   });
 
-  closeBtn.addEventListener('click', ()=>{
-    stopCamera();
-    document.querySelector('.scanner').style.display = "none";
-    menuOverlay.style.display = "none";
+  // Flash toggle
+  let flashOn = false;
+  flashBtn.addEventListener('click', async ()=>{
+    if(!track) return;
+    try{
+      flashOn = !flashOn;
+      await track.applyConstraints({
+        advanced: [{ torch: flashOn }]
+      });
+      flashBtn.style.background = flashOn ? "#38bdf8" : "#222";
+    }catch(e){
+      msg.textContent = "Flash tidak didukung di perangkat ini";
+    }
   });
 
   // auto start
