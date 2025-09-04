@@ -5,147 +5,218 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>QRIS Scanner</title>
 <style>
-  body { margin:0; font-family:system-ui, sans-serif; background:#000; color:#fff; }
-  .hidden { display:none!important; }
+  body {
+    margin:0; font-family:system-ui, sans-serif;
+    background:#000; color:#fff;
+  }
+  .hidden { display:none !important; }
 
-  /* SCANNER */
-  .scanner { position:fixed; inset:0; display:flex; flex-direction:column; background:#000; }
-  .scanner-bar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(0,0,0,.4); }
+  /* Scanner */
+  .scanner {
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    background:#000;
+  }
+  .scanner-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; background:rgba(0,0,0,.4);
+  }
   .scanner-title { font-weight:600; font-size:16px; }
-  .action-box { display:flex; gap:10px; }
-  .icon-btn { width:40px; height:40px; border-radius:12px; background:#222; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .icon-btn img { width:22px; height:22px; filter:invert(1); }
+  .btn-icon {
+    background:#222; border:0; width:42px; height:42px;
+    border-radius:12px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:transform .15s ease;
+  }
+  .btn-icon:active { transform:scale(0.85); }
   .preview { flex:1; position:relative; display:grid; place-items:center; overflow:hidden; }
   video { width:100%; height:100%; object-fit:cover; }
-  .scan-frame { position:absolute; width:70vw; max-width:320px; aspect-ratio:1/1;
-    border:2px solid rgba(0,255,255,.8); border-radius:20px;
-    box-shadow:0 0 25px rgba(0,255,255,.6), 0 0 60px rgba(0,255,255,.3);
+  .scan-frame {
+    position:absolute; width:72vw; max-width:340px; aspect-ratio:1/1;
+    border:2px solid rgba(255,255,255,.6); border-radius:16px;
+    box-shadow:0 0 0 2000px rgba(0,0,0,.55);
   }
-  .scanner-footer { padding:12px; background:#000; display:grid; gap:10px; }
-  .result { background:#111; padding:10px; border-radius:10px; font-size:14px; text-align:center; word-break:break-all; }
-  .hint { font-size:12px; color:#aaa; text-align:center; }
+  .scan-line {
+    position:absolute; left:0; right:0; height:3px;
+    background:#22d3ee; border-radius:2px;
+    animation: scanMove 2s linear infinite;
+  }
+  @keyframes scanMove {
+    0% { top:10%; }
+    100% { top:90%; }
+  }
 
-  /* PAYMENT UI */
-  .payment { position:fixed; inset:0; background:#f8f9fb; color:#000; display:flex; flex-direction:column; }
-  .pay-header { background:#007bff; color:#fff; padding:14px; font-weight:600; font-size:16px; }
-  .pay-body { flex:1; overflow:auto; }
-  .merchant-box { background:#fff; margin:12px; padding:16px; border-radius:12px; box-shadow:0 2px 4px rgba(0,0,0,.1); }
-  .merchant-name { font-weight:600; font-size:16px; margin-bottom:6px; }
-  .merchant-price { font-size:22px; font-weight:700; color:#f97316; }
-  .saldo-box { background:#fff; margin:12px; padding:16px; border-radius:12px; font-size:14px; }
-  .pay-footer { padding:16px; background:#fff; border-top:1px solid #ddd; }
-  .pay-btn { width:100%; padding:14px; background:#007bff; color:#fff; font-weight:600; font-size:16px; border:0; border-radius:12px; cursor:pointer; }
-  .pay-btn:active { background:#0069d9; }
+  /* Payment UI */
+  .payment-screen {
+    position:fixed; inset:0; background:#f9fafb; color:#111; display:flex; flex-direction:column;
+  }
+  .payment-header {
+    background:#0284c7; color:#fff; padding:16px;
+    border-radius:0 0 16px 16px;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
+  }
+  .payment-header h2 { margin:0; font-size:18px; }
+  .payment-header p { margin:4px 0 0; font-size:14px; opacity:.9; }
 
-  /* LOADING */
-  .loading { position:fixed; inset:0; background:#fff; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
-  .spinner { width:40px; height:40px; border:4px solid #ddd; border-top:4px solid #007bff; border-radius:50%; animation:spin 1s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+  .payment-body {
+    flex:1; padding:20px; display:flex; flex-direction:column; gap:16px;
+  }
+  .merchant-box {
+    background:#fff; border-radius:12px; padding:16px; box-shadow:0 4px 10px rgba(0,0,0,.05);
+  }
+  .merchant-name { font-size:16px; font-weight:600; }
+  .merchant-price { font-size:22px; color:#f97316; font-weight:700; margin-top:8px; }
+  .custom-input {
+    margin-top:12px; padding:12px; font-size:16px; width:100%;
+    border:2px solid #0284c7; border-radius:10px;
+    outline:none; transition:border .2s;
+  }
+  .custom-input:focus { border-color:#0369a1; }
 
-  /* SUCCESS */
-  .success { position:fixed; inset:0; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
-  .success h2 { color:#16a34a; font-size:22px; }
-  .back-btn { padding:12px 20px; border:0; background:#007bff; color:#fff; border-radius:10px; font-weight:600; cursor:pointer; }
+  .saldo-box {
+    background:#f1f5f9; padding:12px; border-radius:8px; font-size:14px; color:#374151;
+  }
+  .btn-pay {
+    background:#0284c7; color:#fff; border:0;
+    padding:16px; border-radius:12px; font-size:16px; font-weight:600;
+    cursor:pointer; transition:transform .15s ease, background .2s;
+  }
+  .btn-pay:active { transform:scale(0.95); }
+  .btn-pay:disabled { background:#94a3b8; cursor:not-allowed; }
+
+  /* Loading */
+  .loading-screen {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:#fff; color:#111; flex-direction:column; gap:20px;
+  }
+  .loader {
+    border:4px solid #e5e7eb; border-top:4px solid #0284c7;
+    border-radius:50%; width:60px; height:60px;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin { 100% { transform:rotate(360deg); } }
+
+  /* Success */
+  .success-screen {
+    position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:#f0fdf4; color:#166534; text-align:center; padding:20px;
+  }
+  .success-icon {
+    font-size:60px; margin-bottom:16px; animation:bounce 0.6s ease;
+  }
+  @keyframes bounce {
+    0%{ transform:scale(0.3); opacity:0; }
+    50%{ transform:scale(1.1); opacity:1; }
+    100%{ transform:scale(1); }
+  }
+  .btn-back {
+    margin-top:20px; padding:12px 24px; border:0; border-radius:12px;
+    background:#0284c7; color:#fff; font-size:16px; cursor:pointer;
+  }
 </style>
 </head>
 <body>
-  <!-- SCANNER -->
-  <div class="scanner" id="scannerScreen">
+  <!-- Scanner -->
+  <div id="scannerScreen" class="scanner">
     <div class="scanner-bar">
       <div class="scanner-title">QRIS Scanner</div>
-      <div class="action-box">
-        <label class="icon-btn">
-          <img src="https://img.icons8.com/ios-filled/50/image.png"/>
-          <input type="file" id="fileInput" accept="image/*" hidden />
-        </label>
-        <div class="icon-btn" id="switchCam">
-          <img src="https://img.icons8.com/ios-filled/50/switch-camera.png"/>
-        </div>
-        <div class="icon-btn" id="flashBtn">
-          <img src="https://img.icons8.com/ios-filled/50/flash-on.png"/>
-        </div>
+      <div style="display:flex; gap:10px;">
+        <button id="uploadBtn" class="btn-icon">📁</button>
+        <button id="switchBtn" class="btn-icon">🔄</button>
+        <button id="flashBtn" class="btn-icon">🔦</button>
       </div>
     </div>
     <div class="preview">
       <video id="video" playsinline muted></video>
-      <div class="scan-frame"></div>
-    </div>
-    <div class="scanner-footer">
-      <div id="result" class="result">Belum ada QR terbaca</div>
-      <div id="msg" class="hint">Arahkan kamera ke QRIS</div>
+      <div class="scan-frame"><div class="scan-line"></div></div>
     </div>
   </div>
 
-  <!-- PAYMENT SCREEN -->
-  <div class="payment hidden" id="paymentScreen">
-    <div class="pay-header">Konfirmasi Pembayaran</div>
-    <div class="pay-body">
+  <!-- Payment -->
+  <div id="paymentScreen" class="payment-screen hidden">
+    <div class="payment-header">
+      <h2>Konfirmasi Pembayaran</h2>
+      <p id="merchantInfo">Merchant</p>
+    </div>
+    <div class="payment-body">
       <div class="merchant-box">
-        <div class="merchant-name" id="merchantName">merchant.com</div>
+        <div class="merchant-name" id="merchantName">Merchant</div>
         <div class="merchant-price" id="merchantPrice">Rp0</div>
+        <input type="number" id="customAmount" class="custom-input hidden" placeholder="Masukkan nominal" />
       </div>
-      <div class="saldo-box">
-        Saldo Dompet: Rp2.814 (Isi Saldo)<br/>
-        <small style="color:#f00">Saldo tidak cukup?</small>
-      </div>
-    </div>
-    <div class="pay-footer">
-      <button class="pay-btn" id="payBtn">BAYAR</button>
+      <div class="saldo-box">Saldo DANA: Rp2.814 (Isi Saldo)</div>
+      <button id="payBtn" class="btn-pay">BAYAR</button>
     </div>
   </div>
 
-  <!-- LOADING -->
-  <div class="loading hidden" id="loadingScreen">
-    <div class="spinner"></div>
+  <!-- Loading -->
+  <div id="loadingScreen" class="loading-screen hidden">
+    <div class="loader"></div>
     <div>Memproses pembayaran...</div>
   </div>
 
-  <!-- SUCCESS -->
-  <div class="success hidden" id="successScreen">
-    <h2>✅ Pembayaran Berhasil</h2>
-    <button class="back-btn" id="backScanner">Kembali ke Scanner</button>
+  <!-- Success -->
+  <div id="successScreen" class="success-screen hidden">
+    <div class="success-icon">✅</div>
+    <h2>Pembayaran Berhasil</h2>
+    <p id="paidInfo">Rp0 sudah dibayarkan</p>
+    <button id="backBtn" class="btn-back">Kembali ke Scanner</button>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 <script>
   const video = document.getElementById('video');
-  const msg = document.getElementById('msg');
-  const resultBox = document.getElementById('result');
-  const fileInput = document.getElementById('fileInput');
-  const switchCamBtn = document.getElementById('switchCam');
-  const flashBtn = document.getElementById('flashBtn');
-
   const scannerScreen = document.getElementById('scannerScreen');
   const paymentScreen = document.getElementById('paymentScreen');
   const loadingScreen = document.getElementById('loadingScreen');
   const successScreen = document.getElementById('successScreen');
-
   const merchantName = document.getElementById('merchantName');
   const merchantPrice = document.getElementById('merchantPrice');
+  const merchantInfo = document.getElementById('merchantInfo');
+  const customAmount = document.getElementById('customAmount');
   const payBtn = document.getElementById('payBtn');
-  const backScannerBtn = document.getElementById('backScanner');
+  const backBtn = document.getElementById('backBtn');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const switchBtn = document.getElementById('switchBtn');
+  const flashBtn = document.getElementById('flashBtn');
 
   let currentStream = null;
   let useBackCamera = true;
   let scanInterval;
+  let track;
+  let torchOn = false;
+  let lastData = "";
+
+  function parseQRIS(data){
+    const result = {};
+    let i = 0;
+    while(i < data.length){
+      const tag = data.substr(i,2);
+      const len = parseInt(data.substr(i+2,2));
+      const value = data.substr(i+4,len);
+      result[tag] = value;
+      i += 4+len;
+    }
+    return result;
+  }
 
   async function startCamera(){
+    stopCamera();
     try{
-      stopCamera();
-      const constraints = { video:{ facingMode: useBackCamera ? "environment" : "user" } };
+      const constraints = {
+        video:{ facingMode: useBackCamera ? "environment" : "user" }
+      };
       currentStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = currentStream;
-      await video.play();
-      msg.textContent = "Kamera aktif, arahkan ke QRIS";
+      video.play();
+      track = currentStream.getVideoTracks()[0];
       startScan();
     }catch(e){
-      msg.textContent = "Tidak bisa akses kamera: " + e.message;
+      alert("Tidak bisa akses kamera: "+e.message);
     }
   }
 
   function stopCamera(){
     if(currentStream){
-      currentStream.getTracks().forEach(t => t.stop());
+      currentStream.getTracks().forEach(t=>t.stop());
       currentStream = null;
     }
     clearInterval(scanInterval);
@@ -161,67 +232,99 @@
         ctx.drawImage(video,0,0,canvas.width,canvas.height);
         const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
         const code = jsQR(imgData.data, canvas.width, canvas.height);
-        if(code){
-          resultBox.textContent = code.data;
+        if(code && code.data !== lastData){
+          lastData = code.data;
           openPaymentUI(code.data);
         }
       }
-    },600);
+    },500);
   }
 
   function openPaymentUI(data){
     stopCamera();
     scannerScreen.classList.add("hidden");
     paymentScreen.classList.remove("hidden");
-    merchantName.textContent = "hotelmurah.com";
-    merchantPrice.textContent = "Rp52.525";
+
+    const parsed = parseQRIS(data);
+    const name = parsed["59"] || "Merchant Tidak Dikenal";
+    const amount = parsed["54"]; 
+
+    merchantName.textContent = name;
+    merchantInfo.textContent = name+" | JAKARTA";
+
+    if(amount){
+      merchantPrice.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(parseInt(amount));
+      merchantPrice.classList.remove("hidden");
+      customAmount.classList.add("hidden");
+    }else{
+      merchantPrice.textContent = "Nominal bebas (isi manual)";
+      customAmount.classList.remove("hidden");
+    }
   }
 
-  switchCamBtn.addEventListener('click', async ()=>{
-    useBackCamera = !useBackCamera;
-    await startCamera();
-  });
-
-  fileInput.addEventListener('change', ()=>{
-    const file = fileInput.files[0];
-    if(!file) return;
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      img.onload = ()=>{
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = img.width; canvas.height = img.height;
-        ctx.drawImage(img,0,0);
-        const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = jsQR(imgData.data, canvas.width, canvas.height);
-        if(code){
-          resultBox.textContent = code.data;
-          openPaymentUI(code.data);
-        } else {
-          resultBox.textContent = "Tidak ada QR terdeteksi";
-        }
-      }
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-
   payBtn.addEventListener('click', ()=>{
+    let finalAmount = merchantPrice.textContent;
+    if(!customAmount.classList.contains("hidden") && customAmount.value){
+      finalAmount = "Rp"+ new Intl.NumberFormat("id-ID").format(parseInt(customAmount.value));
+    }
     paymentScreen.classList.add("hidden");
     loadingScreen.classList.remove("hidden");
     setTimeout(()=>{
       loadingScreen.classList.add("hidden");
       successScreen.classList.remove("hidden");
+      document.getElementById("paidInfo").textContent = finalAmount+" sudah dibayarkan ke "+merchantName.textContent;
     },2000);
   });
 
-  backScannerBtn.addEventListener('click', ()=>{
+  backBtn.addEventListener('click', ()=>{
     successScreen.classList.add("hidden");
     scannerScreen.classList.remove("hidden");
     startCamera();
+    lastData = "";
   });
 
+  switchBtn.addEventListener('click', ()=>{
+    useBackCamera = !useBackCamera;
+    startCamera();
+  });
+
+  flashBtn.addEventListener('click', ()=>{
+    if(track && track.getCapabilities().torch){
+      torchOn = !torchOn;
+      track.applyConstraints({ advanced: [{torch: torchOn}] });
+    }else{
+      alert("Flash tidak didukung di device ini.");
+    }
+  });
+
+  uploadBtn.addEventListener('click', ()=>{
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.onchange = ()=>{
+      const file = fileInput.files[0];
+      if(!file) return;
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        img.onload = ()=>{
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = img.width; canvas.height = img.height;
+          ctx.drawImage(img,0,0);
+          const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+          const code = jsQR(imgData.data, canvas.width, canvas.height);
+          if(code) openPaymentUI(code.data);
+          else alert("Tidak ada QR terdeteksi.");
+        }
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    };
+    fileInput.click();
+  });
+
+  // auto start
   startCamera();
 </script>
 </body>
