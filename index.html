@@ -92,20 +92,20 @@
   let scanInterval;
 
   async function startCamera(){
-    try{
-      stopCamera();
-      const constraints = {
-        video:{ facingMode: useBackCamera ? { exact:"environment" } : "user" }
-      };
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = currentStream;
-      await video.play();
-      msg.textContent = "Kamera aktif, arahkan ke QRIS";
-      startScan();
-    }catch(e){
-      msg.textContent = "Tidak bisa akses kamera: " + e.message;
-    }
+  try{
+    stopCamera();
+    const constraints = {
+      video:{ facingMode: useBackCamera ? "environment" : "user" }
+    };
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = currentStream;
+    await video.play();
+    msg.textContent = "Kamera aktif, arahkan ke QRIS";
+    startScan();
+  }catch(e){
+    msg.textContent = "Tidak bisa akses kamera: " + e.message;
   }
+}
 
   function stopCamera(){
     if(currentStream){
