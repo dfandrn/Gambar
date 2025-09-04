@@ -114,6 +114,7 @@
 </style>
 </head>
 <body>
+  
   <!-- Scanner -->
   <div id="scannerScreen" class="scanner">
     <div class="scanner-bar">
@@ -163,9 +164,10 @@
 
 
 
-<!-- Tambahkan tombol isi saldo di payment screen -->
-<div class="saldo-box" style="text-align:center; margin-top:8px; font-size:14px;"></div>
-<button id="topupBtn" class="btn" style="background:#16a34a; margin:10px auto; display:block;">+ Isi Saldo</button>
+<div class="saldo-box" id="saldoContainer">
+  Saldo DANA: Rp0
+  <button id="topupBtn" class="btn-topup">+ Isi Saldo</button>
+</div>
 
 <!-- Modal Top Up -->
 <div id="topupModal" class="hidden" style="
@@ -187,211 +189,214 @@
   
 <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 <script>
-  const video = document.getElementById('video');
-  const scannerScreen = document.getElementById('scannerScreen');
-  const paymentScreen = document.getElementById('paymentScreen');
-  const loadingScreen = document.getElementById('loadingScreen');
-  const successScreen = document.getElementById('successScreen');
-  const merchantName = document.getElementById('merchantName');
-  const merchantPrice = document.getElementById('merchantPrice');
-  const merchantInfo = document.getElementById('merchantInfo');
-  const customAmount = document.getElementById('customAmount');
-  const payBtn = document.getElementById('payBtn');
-  const backBtn = document.getElementById('backBtn');
-  const uploadBtn = document.getElementById('uploadBtn');
-  const switchBtn = document.getElementById('switchBtn');
-  const flashBtn = document.getElementById('flashBtn');
-  const saldoBox = document.querySelector('.saldo-box');
-  const paidInfo = document.getElementById('paidInfo');
+  
+            const video = document.getElementById('video');
+const scannerScreen = document.getElementById('scannerScreen');
+const paymentScreen = document.getElementById('paymentScreen');
+const loadingScreen = document.getElementById('loadingScreen');
+const successScreen = document.getElementById('successScreen');
+const merchantName = document.getElementById('merchantName');
+const merchantPrice = document.getElementById('merchantPrice');
+const merchantInfo = document.getElementById('merchantInfo');
+const customAmount = document.getElementById('customAmount');
+const payBtn = document.getElementById('payBtn');
+const backBtn = document.getElementById('backBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const switchBtn = document.getElementById('switchBtn');
+const flashBtn = document.getElementById('flashBtn');
+const saldoBox = document.getElementById('saldoContainer'); // ambil saldo box baru
+const paidInfo = document.getElementById('paidInfo');
 
-  let currentStream = null;
-  let useBackCamera = true;
-  let scanInterval;
-  let track;
-  let torchOn = false;
-  let lastData = "";
-  let saldo = 50000; // saldo awal Rp50.000
-
-  function updateSaldoBox(){
-    saldoBox.textContent = "Saldo DANA: Rp"+ new Intl.NumberFormat("id-ID").format(saldo);
-  }
-
-  function parseQRIS(data){
-    const result = {};
-    let i = 0;
-    while(i < data.length){
-      const tag = data.substr(i,2);
-      const len = parseInt(data.substr(i+2,2));
-      const value = data.substr(i+4,len);
-      result[tag] = value;
-      i += 4+len;
-    }
-    return result;
-  }
-
-  async function startCamera(){
-    stopCamera();
-    try{
-      const constraints = {
-        video:{ facingMode: useBackCamera ? "environment" : "user" }
-      };
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = currentStream;
-      video.play();
-      track = currentStream.getVideoTracks()[0];
-      startScan();
-    }catch(e){
-      alert("Tidak bisa akses kamera: "+e.message);
-    }
-  }
-
-  function stopCamera(){
-    if(currentStream){
-      currentStream.getTracks().forEach(t=>t.stop());
-      currentStream = null;
-    }
-    clearInterval(scanInterval);
-  }
-
-  function startScan(){
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    scanInterval = setInterval(()=>{
-      if(video.readyState === video.HAVE_ENOUGH_DATA){
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video,0,0,canvas.width,canvas.height);
-        const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = jsQR(imgData.data, canvas.width, canvas.height);
-        if(code && code.data !== lastData){
-          lastData = code.data;
-          openPaymentUI(code.data);
-        }
-      }
-    },500);
-  }
-
-  function openPaymentUI(data){
-    stopCamera();
-    scannerScreen.classList.add("hidden");
-    paymentScreen.classList.remove("hidden");
-
-    const parsed = parseQRIS(data);
-    const name = parsed["59"] || "Merchant Tidak Dikenal";
-    const amount = parsed["54"]; 
-
-    merchantName.textContent = name;
-    merchantInfo.textContent = name+" | JAKARTA";
-
-    if(amount){
-      merchantPrice.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(parseInt(amount));
-      merchantPrice.dataset.value = parseInt(amount);
-      customAmount.classList.add("hidden");
-    }else{
-      merchantPrice.textContent = "Nominal bebas (isi manual)";
-      merchantPrice.dataset.value = 0;
-      customAmount.classList.remove("hidden");
-    }
-
-    updateSaldoBox();
-    checkSaldo();
-  }
-
-  function checkSaldo(){
-    let total = parseInt(merchantPrice.dataset.value || 0);
-    if(!customAmount.classList.contains("hidden") && customAmount.value){
-      total = parseInt(customAmount.value);
-    }
-    if(total > 0){
-      if(total > saldo){
-        payBtn.disabled = true;
-        payBtn.textContent = "Saldo tidak cukup";
-      }else{
-        payBtn.disabled = false;
-        payBtn.textContent = "BAYAR";
-      }
-    }else{
-      payBtn.disabled = true;
-      payBtn.textContent = "Masukkan nominal";
-    }
-  }
-
-  customAmount.addEventListener('input', checkSaldo);
-
-  payBtn.addEventListener('click', ()=>{
-    let finalAmount = merchantPrice.dataset.value || 0;
-    if(!customAmount.classList.contains("hidden") && customAmount.value){
-      finalAmount = parseInt(customAmount.value);
-    }
-    if(finalAmount > saldo) return; // guard
-
-    saldo -= finalAmount;
-    updateSaldoBox();
-
-    paymentScreen.classList.add("hidden");
-    loadingScreen.classList.remove("hidden");
-    setTimeout(()=>{
-      loadingScreen.classList.add("hidden");
-      successScreen.classList.remove("hidden");
-      paidInfo.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(finalAmount)+" sudah dibayarkan ke "+merchantName.textContent;
-    },2000);
-  });
-
-  backBtn.addEventListener('click', ()=>{
-    successScreen.classList.add("hidden");
-    scannerScreen.classList.remove("hidden");
-    startCamera();
-    lastData = "";
-  });
-
-  switchBtn.addEventListener('click', ()=>{
-    useBackCamera = !useBackCamera;
-    startCamera();
-  });
-
-  flashBtn.addEventListener('click', ()=>{
-    if(track && track.getCapabilities().torch){
-      torchOn = !torchOn;
-      track.applyConstraints({ advanced: [{torch: torchOn}] });
-    }else{
-      alert("Flash tidak didukung di device ini.");
-    }
-  });
-
-  uploadBtn.addEventListener('click', ()=>{
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = "image/*";
-    fileInput.onchange = ()=>{
-      const file = fileInput.files[0];
-      if(!file) return;
-      const img = new Image();
-      const reader = new FileReader();
-      reader.onload = ()=>{
-        img.onload = ()=>{
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.width = img.width; canvas.height = img.height;
-          ctx.drawImage(img,0,0);
-          const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-          const code = jsQR(imgData.data, canvas.width, canvas.height);
-          if(code) openPaymentUI(code.data);
-          else alert("Tidak ada QR terdeteksi.");
-        }
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    };
-    fileInput.click();
-  });
-
-
+// Topup
 const topupBtn = document.getElementById("topupBtn");
 const topupModal = document.getElementById("topupModal");
 const topupAmount = document.getElementById("topupAmount");
 const confirmTopup = document.getElementById("confirmTopup");
 const cancelTopup = document.getElementById("cancelTopup");
 
+let currentStream = null;
+let useBackCamera = true;
+let scanInterval;
+let track;
+let torchOn = false;
+let lastData = "";
+let saldo = 50000; // saldo awal Rp50.000
+
+function updateSaldoBox(){
+  saldoBox.firstChild.textContent =
+    "Saldo DANA: Rp" + new Intl.NumberFormat("id-ID").format(saldo) + " ";
+}
+
+function parseQRIS(data){
+  const result = {};
+  let i = 0;
+  while(i < data.length){
+    const tag = data.substr(i,2);
+    const len = parseInt(data.substr(i+2,2));
+    const value = data.substr(i+4,len);
+    result[tag] = value;
+    i += 4+len;
+  }
+  return result;
+}
+
+async function startCamera(){
+  stopCamera();
+  try{
+    const constraints = {
+      video:{ facingMode: useBackCamera ? "environment" : "user" }
+    };
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = currentStream;
+    video.play();
+    track = currentStream.getVideoTracks()[0];
+    startScan();
+  }catch(e){
+    alert("Tidak bisa akses kamera: "+e.message);
+  }
+}
+
+function stopCamera(){
+  if(currentStream){
+    currentStream.getTracks().forEach(t=>t.stop());
+    currentStream = null;
+  }
+  clearInterval(scanInterval);
+}
+
+function startScan(){
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  scanInterval = setInterval(()=>{
+    if(video.readyState === video.HAVE_ENOUGH_DATA){
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code = jsQR(imgData.data, canvas.width, canvas.height);
+      if(code && code.data !== lastData){
+        lastData = code.data;
+        openPaymentUI(code.data);
+      }
+    }
+  },500);
+}
+
+function openPaymentUI(data){
+  stopCamera();
+  scannerScreen.classList.add("hidden");
+  paymentScreen.classList.remove("hidden");
+
+  const parsed = parseQRIS(data);
+  const name = parsed["59"] || "Merchant Tidak Dikenal";
+  const amount = parsed["54"]; 
+
+  merchantName.textContent = name;
+  merchantInfo.textContent = name+" | JAKARTA";
+
+  if(amount){
+    merchantPrice.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(parseInt(amount));
+    merchantPrice.dataset.value = parseInt(amount);
+    customAmount.classList.add("hidden");
+  }else{
+    merchantPrice.textContent = "Nominal bebas (isi manual)";
+    merchantPrice.dataset.value = 0;
+    customAmount.classList.remove("hidden");
+  }
+
+  updateSaldoBox();
+  checkSaldo();
+}
+
+function checkSaldo(){
+  let total = parseInt(merchantPrice.dataset.value || 0);
+  if(!customAmount.classList.contains("hidden") && customAmount.value){
+    total = parseInt(customAmount.value);
+  }
+  if(total > 0){
+    if(total > saldo){
+      payBtn.disabled = true;
+      payBtn.textContent = "Saldo tidak cukup";
+    }else{
+      payBtn.disabled = false;
+      payBtn.textContent = "BAYAR";
+    }
+  }else{
+    payBtn.disabled = true;
+    payBtn.textContent = "Masukkan nominal";
+  }
+}
+
+customAmount.addEventListener('input', checkSaldo);
+
+payBtn.addEventListener('click', ()=>{
+  let finalAmount = merchantPrice.dataset.value || 0;
+  if(!customAmount.classList.contains("hidden") && customAmount.value){
+    finalAmount = parseInt(customAmount.value);
+  }
+  if(finalAmount > saldo) return; // guard
+
+  saldo -= finalAmount;
+  updateSaldoBox();
+
+  paymentScreen.classList.add("hidden");
+  loadingScreen.classList.remove("hidden");
+  setTimeout(()=>{
+    loadingScreen.classList.add("hidden");
+    successScreen.classList.remove("hidden");
+    paidInfo.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(finalAmount)+" sudah dibayarkan ke "+merchantName.textContent;
+  },2000);
+});
+
+backBtn.addEventListener('click', ()=>{
+  successScreen.classList.add("hidden");
+  scannerScreen.classList.remove("hidden");
+  startCamera();
+  lastData = "";
+});
+
+switchBtn.addEventListener('click', ()=>{
+  useBackCamera = !useBackCamera;
+  startCamera();
+});
+
+flashBtn.addEventListener('click', ()=>{
+  if(track && track.getCapabilities().torch){
+    torchOn = !torchOn;
+    track.applyConstraints({ advanced: [{torch: torchOn}] });
+  }else{
+    alert("Flash tidak didukung di device ini.");
+  }
+});
+
+uploadBtn.addEventListener('click', ()=>{
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.onchange = ()=>{
+    const file = fileInput.files[0];
+    if(!file) return;
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      img.onload = ()=>{
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = img.width; canvas.height = img.height;
+        ctx.drawImage(img,0,0);
+        const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = jsQR(imgData.data, canvas.width, canvas.height);
+        if(code) openPaymentUI(code.data);
+        else alert("Tidak ada QR terdeteksi.");
+      }
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  fileInput.click();
+});
+
+// TOP UP
 topupBtn.addEventListener("click", ()=>{
   topupModal.classList.remove("hidden");
 });
@@ -414,10 +419,11 @@ confirmTopup.addEventListener("click", ()=>{
   checkSaldo();
   alert("Saldo berhasil ditambahkan Rp"+ new Intl.NumberFormat("id-ID").format(amt));
 });
+
+// auto start
+updateSaldoBox();
+startCamera();
   
-  // auto start
-  updateSaldoBox();
-  startCamera();
 </script>
 </body>
 </html>
