@@ -18,25 +18,33 @@
     padding:12px 16px; background:rgba(0,0,0,.4);
   }
   .scanner-title { font-weight:600; font-size:16px; }
-  .btn {
-    border:0; border-radius:10px; padding:8px 12px; cursor:pointer;
-    font-weight:600; background:#ffffff22; color:#fff;
+  .menu-btn {
+    background:none; border:0; color:#fff; font-size:20px; cursor:pointer;
   }
+  .menu-overlay {
+    position:absolute; top:50px; right:16px; background:#111;
+    border-radius:12px; padding:8px; display:none; flex-direction:column;
+    gap:6px; box-shadow:0 4px 20px rgba(0,0,0,.6);
+  }
+  .menu-item {
+    background:#222; border-radius:8px; padding:8px 12px;
+    color:#fff; cursor:pointer; font-size:14px; text-align:left;
+  }
+  .menu-item:hover { background:#333; }
   .preview {
     flex:1; position:relative; display:grid; place-items:center; overflow:hidden;
   }
-  video {
-    width:100%; height:100%; object-fit:cover;
-  }
+  video { width:100%; height:100%; object-fit:cover; }
   .scan-frame {
     position:absolute; width:72vw; max-width:340px; aspect-ratio:1/1;
-    border:2px solid rgba(255,255,255,.6); border-radius:16px;
-    box-shadow:0 0 0 2000px rgba(0,0,0,.55); /* efek gelap di luar frame */
+    border:2px solid rgba(0,255,200,.7); border-radius:16px;
+    box-shadow:0 0 15px rgba(0,255,200,.6), 0 0 30px rgba(0,255,200,.3);
   }
   .scan-line {
     position:absolute; top:0; left:0; right:0; height:3px;
-    background:red; border-radius:2px;
-    animation: scanMove 2.2s linear infinite;
+    background:linear-gradient(90deg, transparent, #0ff, transparent);
+    border-radius:2px;
+    animation: scanMove 2.5s linear infinite;
   }
   @keyframes scanMove {
     0% { top:10%; }
@@ -44,9 +52,6 @@
   }
   .scanner-footer {
     padding:12px; background:#000; display:grid; gap:10px;
-  }
-  .fallback {
-    display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
   }
   .hint { font-size:12px; color:#cbd5e1; text-align:center; }
   .result {
@@ -60,7 +65,15 @@
   <div class="scanner">
     <div class="scanner-bar">
       <div class="scanner-title">QRIS Scanner</div>
-      <button id="closeBtn" class="btn">Tutup</button>
+      <button id="menuBtn" class="menu-btn">☰</button>
+      <div id="menuOverlay" class="menu-overlay">
+        <div id="switchCam" class="menu-item">📷 Ganti Kamera</div>
+        <label class="menu-item">
+          🖼️ Upload Gambar
+          <input id="fileInput" type="file" accept="image/*" capture="environment" style="display:none;">
+        </label>
+        <div id="closeBtn" class="menu-item">❌ Tutup Scanner</div>
+      </div>
     </div>
     <div class="preview">
       <video id="video" playsinline muted></video>
@@ -69,12 +82,8 @@
       </div>
     </div>
     <div class="scanner-footer">
-      <div class="fallback">
-        <input id="fileInput" type="file" accept="image/*" capture="environment" class="btn" />
-        <button id="switchCam" class="btn">Ganti Kamera</button>
-      </div>
       <div id="result" class="result">Belum ada QR terbaca</div>
-      <div id="msg" class="hint">Arahkan kamera ke QRIS. Pastikan lewat HTTPS agar kamera bisa aktif.</div>
+      <div id="msg" class="hint">Arahkan kamera ke QRIS. Pastikan lewat HTTPS atau localhost agar kamera aktif.</div>
     </div>
   </div>
 
@@ -86,10 +95,17 @@
   const switchCamBtn = document.getElementById('switchCam');
   const fileInput = document.getElementById('fileInput');
   const closeBtn = document.getElementById('closeBtn');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuOverlay = document.getElementById('menuOverlay');
 
   let currentStream = null;
   let useBackCamera = true;
   let scanInterval;
+
+  // toggle menu
+  menuBtn.addEventListener('click', ()=>{
+    menuOverlay.style.display = menuOverlay.style.display === "flex" ? "none" : "flex";
+  });
 
   async function startCamera(){
     try{
@@ -126,7 +142,11 @@
         const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
         const code = jsQR(imgData.data, canvas.width, canvas.height);
         if(code){
-          resultBox.textContent = code.data;
+          if(code.data.startsWith("http")){
+            resultBox.innerHTML = `<a href="${code.data}" target="_blank" style="color:#38bdf8">${code.data}</a>`;
+          } else {
+            resultBox.textContent = code.data;
+          }
         }
       }
     },500);
@@ -135,6 +155,7 @@
   switchCamBtn.addEventListener('click', async ()=>{
     useBackCamera = !useBackCamera;
     await startCamera();
+    menuOverlay.style.display = "none";
   });
 
   fileInput.addEventListener('change', ()=>{
@@ -150,11 +171,16 @@
         ctx.drawImage(img,0,0);
         const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
         const code = jsQR(imgData.data, canvas.width, canvas.height);
-        resultBox.textContent = code ? code.data : "Tidak ada QR terdeteksi";
+        if(code){
+          resultBox.textContent = code.data;
+        } else {
+          resultBox.textContent = "Tidak ada QR terdeteksi";
+        }
       }
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+    menuOverlay.style.display = "none";
   });
 
   closeBtn.addEventListener('click', ()=>{
