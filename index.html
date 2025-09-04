@@ -177,6 +177,8 @@
   const uploadBtn = document.getElementById('uploadBtn');
   const switchBtn = document.getElementById('switchBtn');
   const flashBtn = document.getElementById('flashBtn');
+  const saldoBox = document.querySelector('.saldo-box');
+  const paidInfo = document.getElementById('paidInfo');
 
   let currentStream = null;
   let useBackCamera = true;
@@ -184,6 +186,11 @@
   let track;
   let torchOn = false;
   let lastData = "";
+  let saldo = 50000; // saldo awal Rp50.000
+
+  function updateSaldoBox(){
+    saldoBox.textContent = "Saldo DANA: Rp"+ new Intl.NumberFormat("id-ID").format(saldo);
+  }
 
   function parseQRIS(data){
     const result = {};
@@ -254,25 +261,55 @@
 
     if(amount){
       merchantPrice.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(parseInt(amount));
-      merchantPrice.classList.remove("hidden");
+      merchantPrice.dataset.value = parseInt(amount);
       customAmount.classList.add("hidden");
     }else{
       merchantPrice.textContent = "Nominal bebas (isi manual)";
+      merchantPrice.dataset.value = 0;
       customAmount.classList.remove("hidden");
+    }
+
+    updateSaldoBox();
+    checkSaldo();
+  }
+
+  function checkSaldo(){
+    let total = parseInt(merchantPrice.dataset.value || 0);
+    if(!customAmount.classList.contains("hidden") && customAmount.value){
+      total = parseInt(customAmount.value);
+    }
+    if(total > 0){
+      if(total > saldo){
+        payBtn.disabled = true;
+        payBtn.textContent = "Saldo tidak cukup";
+      }else{
+        payBtn.disabled = false;
+        payBtn.textContent = "BAYAR";
+      }
+    }else{
+      payBtn.disabled = true;
+      payBtn.textContent = "Masukkan nominal";
     }
   }
 
+  customAmount.addEventListener('input', checkSaldo);
+
   payBtn.addEventListener('click', ()=>{
-    let finalAmount = merchantPrice.textContent;
+    let finalAmount = merchantPrice.dataset.value || 0;
     if(!customAmount.classList.contains("hidden") && customAmount.value){
-      finalAmount = "Rp"+ new Intl.NumberFormat("id-ID").format(parseInt(customAmount.value));
+      finalAmount = parseInt(customAmount.value);
     }
+    if(finalAmount > saldo) return; // guard
+
+    saldo -= finalAmount;
+    updateSaldoBox();
+
     paymentScreen.classList.add("hidden");
     loadingScreen.classList.remove("hidden");
     setTimeout(()=>{
       loadingScreen.classList.add("hidden");
       successScreen.classList.remove("hidden");
-      document.getElementById("paidInfo").textContent = finalAmount+" sudah dibayarkan ke "+merchantName.textContent;
+      paidInfo.textContent = "Rp"+ new Intl.NumberFormat("id-ID").format(finalAmount)+" sudah dibayarkan ke "+merchantName.textContent;
     },2000);
   });
 
@@ -324,6 +361,9 @@
     fileInput.click();
   });
 
+  // auto start
+  updateSaldoBox();
+  startCamera(); 
   // auto start
   startCamera();
 </script>
