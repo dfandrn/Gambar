@@ -161,6 +161,30 @@
     <button id="backBtn" class="btn-back">Kembali ke Scanner</button>
   </div>
 
+
+
+<!-- Tambahkan tombol isi saldo di payment screen -->
+<div class="saldo-box" style="text-align:center; margin-top:8px; font-size:14px;"></div>
+<button id="topupBtn" class="btn" style="background:#16a34a; margin:10px auto; display:block;">+ Isi Saldo</button>
+
+<!-- Modal Top Up -->
+<div id="topupModal" class="hidden" style="
+  position:fixed; inset:0; background:rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:center;
+  z-index:100;
+">
+  <div style="background:#fff; color:#111; padding:20px; border-radius:14px; width:80%; max-width:320px; text-align:center;">
+    <h3 style="margin-bottom:12px;">Isi Saldo</h3>
+    <input id="topupAmount" type="number" placeholder="Masukkan nominal" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; margin-bottom:12px;"/>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button id="cancelTopup" class="btn" style="background:#aaa; color:#fff;">Batal</button>
+      <button id="confirmTopup" class="btn" style="background:#2563eb; color:#fff;">Isi</button>
+    </div>
+  </div>
+</div>
+
+
+  
 <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 <script>
   const video = document.getElementById('video');
@@ -361,10 +385,38 @@
     fileInput.click();
   });
 
+
+const topupBtn = document.getElementById("topupBtn");
+const topupModal = document.getElementById("topupModal");
+const topupAmount = document.getElementById("topupAmount");
+const confirmTopup = document.getElementById("confirmTopup");
+const cancelTopup = document.getElementById("cancelTopup");
+
+topupBtn.addEventListener("click", ()=>{
+  topupModal.classList.remove("hidden");
+});
+
+cancelTopup.addEventListener("click", ()=>{
+  topupModal.classList.add("hidden");
+  topupAmount.value = "";
+});
+
+confirmTopup.addEventListener("click", ()=>{
+  const amt = parseInt(topupAmount.value);
+  if(isNaN(amt) || amt <= 0){
+    alert("Nominal tidak valid");
+    return;
+  }
+  saldo += amt;
+  updateSaldoBox();
+  topupModal.classList.add("hidden");
+  topupAmount.value = "";
+  checkSaldo();
+  alert("Saldo berhasil ditambahkan Rp"+ new Intl.NumberFormat("id-ID").format(amt));
+});
+  
   // auto start
   updateSaldoBox();
-  startCamera(); 
-  // auto start
   startCamera();
 </script>
 </body>
