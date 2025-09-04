@@ -19,30 +19,39 @@
   }
   .scanner-title { font-weight:600; font-size:16px; }
   .menu-btn {
-    background:none; border:0; color:#fff; font-size:20px; cursor:pointer;
+    background:#222; border:0; color:#fff;
+    width:40px; height:40px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
   }
+  .menu-btn svg { width:20px; height:20px; fill:#fff; }
   .menu-overlay {
-    position:absolute; top:50px; right:16px; background:#111;
-    border-radius:12px; padding:8px; display:none; flex-direction:column;
-    gap:6px; box-shadow:0 4px 20px rgba(0,0,0,.6);
+    position:absolute; top:52px; right:16px; background:#111;
+    border-radius:14px; padding:8px; display:none; flex-direction:column;
+    gap:4px; box-shadow:0 6px 24px rgba(0,0,0,.7);
+    min-width:160px; animation:fadeIn .2s ease;
   }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:translateY(0);} }
   .menu-item {
-    background:#222; border-radius:8px; padding:8px 12px;
-    color:#fff; cursor:pointer; font-size:14px; text-align:left;
+    display:flex; align-items:center; gap:8px;
+    background:#1e1e1e; border-radius:10px;
+    padding:10px 12px; color:#fff; cursor:pointer; font-size:14px;
+    transition:background .2s;
   }
-  .menu-item:hover { background:#333; }
+  .menu-item:hover { background:#2a2a2a; }
+  .menu-item svg { width:18px; height:18px; fill:#38bdf8; }
   .preview {
     flex:1; position:relative; display:grid; place-items:center; overflow:hidden;
   }
   video { width:100%; height:100%; object-fit:cover; }
   .scan-frame {
     position:absolute; width:72vw; max-width:340px; aspect-ratio:1/1;
-    border:2px solid rgba(0,255,200,.7); border-radius:16px;
-    box-shadow:0 0 15px rgba(0,255,200,.6), 0 0 30px rgba(0,255,200,.3);
+    border:2px solid rgba(56,189,248,.9); border-radius:18px;
+    box-shadow:0 0 12px rgba(56,189,248,.8), 0 0 32px rgba(56,189,248,.4);
   }
   .scan-line {
     position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg, transparent, #0ff, transparent);
+    background:linear-gradient(90deg, transparent, #38bdf8, transparent);
     border-radius:2px;
     animation: scanMove 2.5s linear infinite;
   }
@@ -53,9 +62,9 @@
   .scanner-footer {
     padding:12px; background:#000; display:grid; gap:10px;
   }
-  .hint { font-size:12px; color:#cbd5e1; text-align:center; }
+  .hint { font-size:12px; color:#94a3b8; text-align:center; }
   .result {
-    background:#111; padding:10px; border-radius:10px;
+    background:#111; padding:12px; border-radius:12px;
     font-size:14px; text-align:center;
     word-break:break-all;
   }
@@ -65,14 +74,23 @@
   <div class="scanner">
     <div class="scanner-bar">
       <div class="scanner-title">QRIS Scanner</div>
-      <button id="menuBtn" class="menu-btn">☰</button>
+      <button id="menuBtn" class="menu-btn">
+        <!-- Icon titik tiga -->
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
       <div id="menuOverlay" class="menu-overlay">
-        <div id="switchCam" class="menu-item">📷 Ganti Kamera</div>
-        <label class="menu-item">
-          🖼️ Upload Gambar
-          <input id="fileInput" type="file" accept="image/*" capture="environment" style="display:none;">
-        </label>
-        <div id="closeBtn" class="menu-item">❌ Tutup Scanner</div>
+        <div id="switchCam" class="menu-item">
+          <svg viewBox="0 0 24 24"><path d="M20 5h-3.17l-1.41-1.41A2 2 0 0 0 14 3h-4a2 2 0 0 0-1.41.59L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM12 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>
+          Ganti Kamera
+        </div>
+        <div id="uploadBtn" class="menu-item">
+          <svg viewBox="0 0 24 24"><path d="M5 20h14a1 1 0 0 0 1-1v-9h-4l-3-4H9L6 10H2v9a1 1 0 0 0 1 1z"/></svg>
+          Upload Gambar
+        </div>
+        <div id="closeBtn" class="menu-item">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Tutup Scanner
+        </div>
       </div>
     </div>
     <div class="preview">
@@ -93,10 +111,17 @@
   const msg = document.getElementById('msg');
   const resultBox = document.getElementById('result');
   const switchCamBtn = document.getElementById('switchCam');
-  const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
   const closeBtn = document.getElementById('closeBtn');
   const menuBtn = document.getElementById('menuBtn');
   const menuOverlay = document.getElementById('menuOverlay');
+
+  // hidden input untuk upload
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.style.display = "none";
+  document.body.appendChild(fileInput);
 
   let currentStream = null;
   let useBackCamera = true;
@@ -111,7 +136,7 @@
     try{
       stopCamera();
       const constraints = {
-        video:{ facingMode: useBackCamera ? { exact:"environment" } : "user" }
+        video:{ facingMode: useBackCamera ? "environment" : "user" }
       };
       currentStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = currentStream;
@@ -158,6 +183,11 @@
     menuOverlay.style.display = "none";
   });
 
+  uploadBtn.addEventListener('click', ()=>{
+    fileInput.click();
+    menuOverlay.style.display = "none";
+  });
+
   fileInput.addEventListener('change', ()=>{
     const file = fileInput.files[0];
     if(!file) return;
@@ -180,12 +210,12 @@
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
-    menuOverlay.style.display = "none";
   });
 
   closeBtn.addEventListener('click', ()=>{
     stopCamera();
     document.querySelector('.scanner').style.display = "none";
+    menuOverlay.style.display = "none";
   });
 
   // auto start
