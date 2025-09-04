@@ -19,44 +19,76 @@
   }
   .scanner-title { font-weight:600; font-size:16px; }
   .action-buttons {
-    display:flex; gap:8px;
+    display:flex; gap:10px;
   }
   .btn-icon {
     background:#222; border:0; color:#fff;
-    width:40px; height:40px; border-radius:12px;
+    width:42px; height:42px; border-radius:12px;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer;
-    transition:background .2s;
   }
-  .btn-icon:hover { background:#333; }
-  .btn-icon svg { width:20px; height:20px; fill:#38bdf8; }
+  .btn-icon img {
+    width:22px; height:22px; object-fit:contain;
+    pointer-events:none;
+  }
+  .btn-icon:active { transform:scale(0.85); }
+
   .preview {
     flex:1; position:relative; display:grid; place-items:center; overflow:hidden;
   }
   video { width:100%; height:100%; object-fit:cover; }
   .scan-frame {
     position:absolute; width:72vw; max-width:340px; aspect-ratio:1/1;
-    border:2px solid rgba(56,189,248,.9); border-radius:18px;
-    box-shadow:0 0 12px rgba(56,189,248,.8), 0 0 32px rgba(56,189,248,.4);
+    border:2px solid rgba(0,200,255,.7); border-radius:16px;
+    box-shadow:0 0 20px rgba(0,200,255,.7);
   }
   .scan-line {
     position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg, transparent, #38bdf8, transparent);
-    border-radius:2px;
-    animation: scanMove 2.5s linear infinite;
+    background:cyan; border-radius:2px;
+    animation: scanMove 2.2s linear infinite;
   }
-  @keyframes scanMove {
-    0% { top:10%; }
-    100% { top:90%; }
-  }
+  @keyframes scanMove { 0%{top:10%;} 100%{top:90%;} }
+
   .scanner-footer {
     padding:12px; background:#000; display:grid; gap:10px;
   }
-  .hint { font-size:12px; color:#94a3b8; text-align:center; }
+  .hint { font-size:12px; color:#cbd5e1; text-align:center; }
   .result {
-    background:#111; padding:12px; border-radius:12px;
-    font-size:14px; text-align:center;
-    word-break:break-all;
+    background:#111; padding:10px; border-radius:10px;
+    font-size:14px; text-align:center; word-break:break-all;
+  }
+
+  /* Modal */
+  .modal {
+    position:fixed; inset:0; background:rgba(0,0,0,.7);
+    display:flex; align-items:center; justify-content:center;
+    visibility:hidden; opacity:0; transition:.3s;
+  }
+  .modal.active { visibility:visible; opacity:1; }
+  .modal-content {
+    background:#fff; color:#000; padding:20px; border-radius:16px;
+    width:90%; max-width:360px; text-align:center;
+    animation:pop .3s ease;
+  }
+  @keyframes pop { 0%{transform:scale(.8); opacity:0;} 100%{transform:scale(1); opacity:1;} }
+  .modal h2 { margin-top:0; }
+  .btn-pay {
+    background:#0ea5e9; color:#fff; border:0; padding:10px 20px;
+    font-size:16px; border-radius:12px; cursor:pointer;
+    margin-top:16px; width:100%;
+  }
+  .loading {
+    border:4px solid #ddd; border-top:4px solid #0ea5e9;
+    border-radius:50%; width:40px; height:40px;
+    margin:20px auto; animation:spin 1s linear infinite;
+  }
+  @keyframes spin { 100%{transform:rotate(360deg);} }
+  .success {
+    font-size:48px; color:#22c55e; margin:20px 0;
+    animation:bounce 0.6s ease;
+  }
+  @keyframes bounce {
+    0%{transform:scale(0.5);} 60%{transform:scale(1.2);} 100%{transform:scale(1);}
   }
 </style>
 </head>
@@ -65,29 +97,31 @@
     <div class="scanner-bar">
       <div class="scanner-title">QRIS Scanner</div>
       <div class="action-buttons">
-        <!-- Upload file -->
-        <button id="uploadBtn" class="btn-icon" title="Upload Gambar">
-          <svg viewBox="0 0 24 24"><path d="M5 20h14a1 1 0 0 0 1-1v-9h-4l-3-4H9L6 10H2v9a1 1 0 0 0 1 1z"/></svg>
+        <button id="uploadBtn" class="btn-icon">
+          <img src="https://cdn-icons-png.flaticon.com/512/1829/1829586.png" alt="Upload">
         </button>
-        <!-- Ganti kamera -->
-        <button id="switchCam" class="btn-icon" title="Ganti Kamera">
-          <svg viewBox="0 0 24 24"><path d="M20 5h-3.17l-1.41-1.41A2 2 0 0 0 14 3h-4a2 2 0 0 0-1.41.59L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM12 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>
+        <button id="switchCam" class="btn-icon">
+          <img src="https://cdn-icons-png.flaticon.com/512/1047/1047984.png" alt="Switch Camera">
         </button>
-        <!-- Flash -->
-        <button id="flashBtn" class="btn-icon" title="Nyalakan Flash">
-          <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+        <button id="flashBtn" class="btn-icon">
+          <img src="https://cdn-icons-png.flaticon.com/512/2463/2463510.png" alt="Flash">
         </button>
       </div>
     </div>
     <div class="preview">
       <video id="video" playsinline muted></video>
-      <div class="scan-frame">
-        <div class="scan-line"></div>
-      </div>
+      <div class="scan-frame"><div class="scan-line"></div></div>
     </div>
     <div class="scanner-footer">
       <div id="result" class="result">Belum ada QR terbaca</div>
-      <div id="msg" class="hint">Arahkan kamera ke QRIS. Pastikan lewat HTTPS atau localhost agar kamera aktif.</div>
+      <div id="msg" class="hint">Arahkan kamera ke QRIS. Pastikan lewat HTTPS agar kamera bisa aktif.</div>
+    </div>
+  </div>
+
+  <!-- Modal Simulasi Pembayaran -->
+  <div id="modal" class="modal">
+    <div class="modal-content" id="modalContent">
+      <!-- isi akan diganti via JS -->
     </div>
   </div>
 
@@ -99,41 +133,26 @@
   const switchCamBtn = document.getElementById('switchCam');
   const uploadBtn = document.getElementById('uploadBtn');
   const flashBtn = document.getElementById('flashBtn');
+  const modal = document.getElementById('modal');
+  const modalContent = document.getElementById('modalContent');
 
-  // hidden input untuk upload
-  const fileInput = document.createElement("input");
-  fileInput.type = "file";
-  fileInput.accept = "image/*";
-  fileInput.style.display = "none";
-  document.body.appendChild(fileInput);
-
-  let currentStream = null;
-  let useBackCamera = true;
-  let scanInterval;
-  let track; // untuk flash
+  let currentStream = null, useBackCamera = true, scanInterval, track;
+  let flashOn = false;
 
   async function startCamera(){
     try{
       stopCamera();
-      const constraints = {
-        video:{ facingMode: useBackCamera ? "environment" : "user" }
-      };
+      const constraints = { video:{ facingMode: useBackCamera ? "environment" : "user" } };
       currentStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = currentStream;
-      track = currentStream.getVideoTracks()[0];
       await video.play();
+      track = currentStream.getVideoTracks()[0];
       msg.textContent = "Kamera aktif, arahkan ke QRIS";
       startScan();
-    }catch(e){
-      msg.textContent = "Tidak bisa akses kamera: " + e.message;
-    }
+    }catch(e){ msg.textContent = "Tidak bisa akses kamera: " + e.message; }
   }
-
   function stopCamera(){
-    if(currentStream){
-      currentStream.getTracks().forEach(t => t.stop());
-      currentStream = null;
-    }
+    if(currentStream){ currentStream.getTracks().forEach(t => t.stop()); currentStream = null; }
     clearInterval(scanInterval);
   }
 
@@ -148,67 +167,69 @@
         const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
         const code = jsQR(imgData.data, canvas.width, canvas.height);
         if(code){
-          if(code.data.startsWith("http")){
-            resultBox.innerHTML = `<a href="${code.data}" target="_blank" style="color:#38bdf8">${code.data}</a>`;
-          } else {
-            resultBox.textContent = code.data;
-          }
+          resultBox.textContent = code.data;
+          stopCamera();
+          showPayment(code.data);
         }
       }
     },500);
   }
 
-  // Ganti kamera
-  switchCamBtn.addEventListener('click', async ()=>{
-    useBackCamera = !useBackCamera;
-    await startCamera();
-  });
+  // --- Simulasi Pembayaran ---
+  function showPayment(qr){
+    modal.classList.add("active");
+    modalContent.innerHTML = `
+      <h2>Detail Transaksi</h2>
+      <p><b>Merchant:</b> Kopi Kenangan</p>
+      <p><b>Nominal:</b> Rp 25.000</p>
+      <p><small>QR: ${qr.substring(0,25)}...</small></p>
+      <button class="btn-pay" id="payBtn">Bayar</button>
+    `;
+    document.getElementById('payBtn').addEventListener('click', ()=>{
+      modalContent.innerHTML = `<h2>Memproses...</h2><div class="loading"></div>`;
+      setTimeout(()=>{
+        modalContent.innerHTML = `
+          <div class="success">✅</div>
+          <h2>Pembayaran Berhasil</h2>
+          <p>Rp 25.000 sudah dibayarkan</p>
+        `;
+      },2000);
+    });
+  }
 
-  // Upload
+  // Upload dari file
   uploadBtn.addEventListener('click', ()=>{
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', ()=>{
-    const file = fileInput.files[0];
-    if(!file) return;
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      img.onload = ()=>{
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = img.width; canvas.height = img.height;
-        ctx.drawImage(img,0,0);
-        const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = jsQR(imgData.data, canvas.width, canvas.height);
-        if(code){
-          resultBox.textContent = code.data;
-        } else {
-          resultBox.textContent = "Tidak ada QR terdeteksi";
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = "image/*";
+    input.onchange = ()=>{
+      const file = input.files[0]; if(!file) return;
+      const img = new Image(); const reader = new FileReader();
+      reader.onload = ()=>{
+        img.onload = ()=>{
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = img.width; canvas.height = img.height;
+          ctx.drawImage(img,0,0);
+          const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+          const code = jsQR(imgData.data, canvas.width, canvas.height);
+          if(code){ resultBox.textContent = code.data; showPayment(code.data); }
+          else resultBox.textContent = "Tidak ada QR terdeteksi";
         }
-      }
-      img.src = reader.result;
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
     };
-    reader.readAsDataURL(file);
+    input.click();
   });
 
-  // Flash toggle
-  let flashOn = false;
+  switchCamBtn.addEventListener('click', async ()=>{ useBackCamera = !useBackCamera; await startCamera(); });
   flashBtn.addEventListener('click', async ()=>{
-    if(!track) return;
-    try{
-      flashOn = !flashOn;
-      await track.applyConstraints({
-        advanced: [{ torch: flashOn }]
-      });
-      flashBtn.style.background = flashOn ? "#38bdf8" : "#222";
-    }catch(e){
-      msg.textContent = "Flash tidak didukung di perangkat ini";
-    }
+    if(track && track.getCapabilities().torch){
+      try{ flashOn = !flashOn; await track.applyConstraints({ advanced: [{ torch: flashOn }] }); }
+      catch(e){ msg.textContent = "Flash gagal: " + e.message; }
+    }else msg.textContent = "Torch tidak didukung di perangkat ini";
   });
 
-  // auto start
   startCamera();
 </script>
 </body>
