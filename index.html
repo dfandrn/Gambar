@@ -132,21 +132,27 @@
   </div>
 
   <!-- Payment -->
-  <div id="paymentScreen" class="payment-screen hidden">
-    <div class="payment-header">
-      <h2>Konfirmasi Pembayaran</h2>
-      <p id="merchantInfo">Merchant</p>
-    </div>
-    <div class="payment-body">
-      <div class="merchant-box">
-        <div class="merchant-name" id="merchantName">Merchant</div>
-        <div class="merchant-price" id="merchantPrice">Rp0</div>
-        <input type="number" id="customAmount" class="custom-input hidden" placeholder="Masukkan nominal" />
-      </div>
-      <div class="saldo-box">Saldo DANA: Rp2.814 (Isi Saldo)</div>
-      <button id="payBtn" class="btn-pay">BAYAR</button>
-    </div>
+<div id="paymentScreen" class="payment-screen hidden">
+  <div class="payment-header">
+    <h2>Konfirmasi Pembayaran</h2>
+    <p id="merchantInfo">Merchant</p>
   </div>
+  <div class="payment-body">
+    <div class="merchant-box">
+      <div class="merchant-name" id="merchantName">Merchant</div>
+      <div class="merchant-price" id="merchantPrice">Rp0</div>
+      <input type="number" id="customAmount" class="custom-input hidden" placeholder="Masukkan nominal" />
+    </div>
+
+    <!-- SALDO + TOMBOL TOP UP -->
+    <div class="saldo-box" id="saldoContainer">
+      Saldo DANA: Rp0 
+      <button id="topupBtn" class="btn-topup">+ Isi Saldo</button>
+    </div>
+
+    <button id="payBtn" class="btn-pay">BAYAR</button>
+  </div>
+</div>
 
   <!-- Loading -->
   <div id="loadingScreen" class="loading-screen hidden">
@@ -189,6 +195,30 @@
   
 <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 <script>
+  
+  .saldo-box {
+  background:#f1f5f9;
+  padding:12px;
+  border-radius:8px;
+  font-size:14px;
+  color:#374151;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.btn-topup {
+  background:#16a34a;
+  color:#fff;
+  border:0;
+  padding:6px 12px;
+  font-size:13px;
+  font-weight:600;
+  border-radius:8px;
+  cursor:pointer;
+  transition:transform .15s ease;
+}
+.btn-topup:active { transform:scale(0.95); }
   
             const video = document.getElementById('video');
 const scannerScreen = document.getElementById('scannerScreen');
